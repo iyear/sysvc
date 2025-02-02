@@ -219,16 +219,20 @@ func (s *openrc) run(action string, args ...string) error {
 	return run("rc-update", append([]string{action}, args...)...)
 }
 
+// https://www.funtoo.org/Openrc
+// https://github.com/OpenRC/openrc/blob/master/service-script-guide.md
 const openRCScript = `#!/sbin/openrc-run
-supervisor=supervise-daemon
 name="{{.DisplayName}}"
 description="{{.Description}}"
 command={{.Path|cmdEscape}}
 {{- if .Arguments }}
 command_args="{{range .Arguments}}{{.}} {{end}}"
 {{- end }}
-name=$(basename $(readlink -f $command))
-supervise_daemon_args="--stdout {{.LogDirectory}}/${name}.log --stderr {{.LogDirectory}}/${name}.err"
+{{- if .UserName }}
+command_user="{{.UserName}}"
+{{- end }}
+command_background=true
+pidfile="/var/run/{{.Name}}.pid"
 
 {{range $k, $v := .EnvVars -}}
 export {{$k}}={{$v}}
@@ -236,7 +240,7 @@ export {{$k}}={{$v}}
 
 {{- if .Dependencies }}
 depend() {
-{{- range $i, $dep := .Dependencies}} 
+{{- range $i, $dep := .Dependencies}}
 {{"\t"}}{{$dep}}{{end}}
 }
 {{- end}}
