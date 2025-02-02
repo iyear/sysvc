@@ -29,17 +29,11 @@ const (
 
 type darwinSystem struct{}
 
-func (darwinSystem) String() string {
-	return platform
-}
+func (darwinSystem) String() string { return platform }
 
-func (darwinSystem) Detect() bool {
-	return true
-}
+func (darwinSystem) Detect() bool { return true }
 
-func (darwinSystem) Interactive() bool {
-	return interactive
-}
+func (darwinSystem) Interactive() bool { return interactive }
 
 func (darwinSystem) New(i Interface, c *Config) (Service, error) {
 	s := &darwinLaunchdService{
