@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# PROVIDE: {{ .Name }}
+# REQUIRE: SERVERS
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="{{ .Name }}"
+{{ .Name }}_env="IS_DAEMON=1"
+pidfile="/var/run/${name}.pid"
+command="/usr/sbin/daemon"
+daemon_args="-P ${pidfile} -r -t \"${name}: daemon\"{{ if .WorkingDirectory }} -c {{ .WorkingDirectory }}{{ end }}"
+command_args="${daemon_args} {{ .Path }}{{ range .Arguments }} {{ . }}{{ end }}"
+
+run_rc_command "$1"

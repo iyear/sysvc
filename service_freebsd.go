@@ -5,6 +5,7 @@
 package sysvc
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
 	"os/signal"
@@ -13,20 +14,22 @@ import (
 	"text/template"
 )
 
-const version = "freebsd"
-const configDir = "/usr/local/etc/rc.d"
+//go:embed service_freebsd.tmpl
+var freebsdScript string
+
+const (
+	platform  = "freebsd"
+	configDir = "/usr/local/etc/rc.d"
+)
 
 type freebsdSystem struct{}
 
-func (freebsdSystem) String() string {
-	return version
-}
-func (freebsdSystem) Detect() bool {
-	return true
-}
-func (freebsdSystem) Interactive() bool {
-	return interactive
-}
+func (freebsdSystem) String() string { return platform }
+
+func (freebsdSystem) Detect() bool { return true }
+
+func (freebsdSystem) Interactive() bool { return interactive }
+
 func (freebsdSystem) New(i Interface, c *Config) (Service, error) {
 	s := &freebsdService{
 		i:      i,
@@ -67,7 +70,7 @@ func (s *freebsdService) String() string {
 }
 
 func (s *freebsdService) Platform() string {
-	return version
+	return platform
 }
 
 func (s *freebsdService) template() *template.Template {
@@ -85,7 +88,7 @@ func (s *freebsdService) template() *template.Template {
 	if customConfig != "" {
 		return template.Must(template.New("").Funcs(functions).Parse(customConfig))
 	} else {
-		return template.Must(template.New("").Funcs(functions).Parse(rcScript))
+		return template.Must(template.New("").Funcs(functions).Parse(freebsdScript))
 	}
 }
 
@@ -164,6 +167,7 @@ func (s *freebsdService) Status() (Status, error) {
 	} else if err != nil {
 		return StatusUnknown, err
 	}
+
 	return StatusRunning, nil
 }
 
@@ -180,10 +184,7 @@ func (s *freebsdService) Restart() error {
 }
 
 func (s *freebsdService) Run() error {
-	var err error
-
-	err = s.i.Start(s)
-	if err != nil {
+	if err := s.i.Start(s); err != nil {
 		return err
 	}
 
@@ -206,21 +207,3 @@ func (s *freebsdService) Logger(errs chan<- error) (Logger, error) {
 func (s *freebsdService) SystemLogger(errs chan<- error) (Logger, error) {
 	return newSysLogger(s.Name, errs)
 }
-
-var rcScript = `#!/bin/sh
-
-# PROVIDE: {{.Name}}
-# REQUIRE: SERVERS
-# KEYWORD: shutdown
-
-. /etc/rc.subr
-
-name="{{.Name}}"
-{{.Name}}_env="IS_DAEMON=1"
-pidfile="/var/run/${name}.pid"
-command="/usr/sbin/daemon"
-daemon_args="-P ${pidfile} -r -t \"${name}: daemon\"{{if .WorkingDirectory}} -c {{.WorkingDirectory}}{{end}}"
-command_args="${daemon_args} {{.Path}}{{range .Arguments}} {{.}}{{end}}"
-
-run_rc_command "$1"
-`
