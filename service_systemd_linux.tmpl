@@ -30,7 +30,7 @@ ExecReload=/bin/kill -{{ . }} "$MAINPID"
 PIDFile={{ . | cmd }}
 {{- end }}
 
-{{- if and .LogOutput .HasOutputFileSupport -}}
+{{- if and .LogOutput .HasOutputFileSupport }}
 StandardOutput=file:{{ .LogDirectory }}/{{ .Name }}.out
 StandardError=file:{{ .LogDirectory }}/{{ .Name }}.err
 {{- end }}
