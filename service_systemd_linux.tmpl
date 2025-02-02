@@ -31,7 +31,7 @@ PIDFile={{ . | cmd }}
 {{- end }}
 
 {{- if and .LogOutput .HasOutputFileSupport }}
-StandardOutput=file:{{ .LogDirectory }}/{{ .Name }}.out
+StandardOutput=file:{{ .LogDirectory }}/{{ .Name }}.log
 StandardError=file:{{ .LogDirectory }}/{{ .Name }}.err
 {{- end }}
 
