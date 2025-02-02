@@ -5,6 +5,7 @@
 package sysvc
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"os"
@@ -14,6 +15,12 @@ import (
 	"syscall"
 	"text/template"
 )
+
+// The upstart script should stop with an INT or the Go runtime will terminate
+// the program before the Stop handler can run.
+//
+//go:embed service_upstart_linux.tmpl
+var upstartScript string
 
 func isUpstart() bool {
 	if _, err := os.Stat("/sbin/upstart-udev-bridge"); err == nil {
@@ -59,7 +66,7 @@ func (s *upstart) Platform() string {
 // Upstart has some support for user services in graphical sessions.
 // Due to the mix of actual support for user services over versions, just don't bother.
 // Upstart will be replaced by systemd in most cases anyway.
-var errNoUserServiceUpstart = errors.New("User services are not supported on Upstart.")
+var errNoUserServiceUpstart = errors.New("user services are not supported on Upstart")
 
 func (s *upstart) ConfigPath() (cp string, err error) {
 	if s.Option.bool(optionUserService, optionUserServiceDefault) {
@@ -71,10 +78,9 @@ func (s *upstart) ConfigPath() (cp string, err error) {
 }
 
 func (s *upstart) hasKillStanza() bool {
-	defaultValue := true
 	version := s.getUpstartVersion()
 	if version == nil {
-		return defaultValue
+		return true
 	}
 
 	maxVersion := []int{0, 6, 5}
@@ -82,14 +88,13 @@ func (s *upstart) hasKillStanza() bool {
 		return false
 	}
 
-	return defaultValue
+	return true
 }
 
 func (s *upstart) hasSetUIDStanza() bool {
-	defaultValue := true
 	version := s.getUpstartVersion()
 	if version == nil {
-		return defaultValue
+		return true
 	}
 
 	maxVersion := []int{1, 4, 0}
@@ -97,7 +102,7 @@ func (s *upstart) hasSetUIDStanza() bool {
 		return false
 	}
 
-	return defaultValue
+	return true
 }
 
 func (s *upstart) getUpstartVersion() []int {
@@ -130,8 +135,7 @@ func (s *upstart) Install() error {
 	if err != nil {
 		return err
 	}
-	_, err = os.Stat(confPath)
-	if err == nil {
+	if _, err = os.Stat(confPath); err == nil {
 		return fmt.Errorf("Init already exists: %s", confPath)
 	}
 
@@ -170,7 +174,7 @@ func (s *upstart) Uninstall() error {
 	if err != nil {
 		return err
 	}
-	if err := os.Remove(cp); err != nil {
+	if err = os.Remove(cp); err != nil {
 		return err
 	}
 	return nil
@@ -187,8 +191,7 @@ func (s *upstart) SystemLogger(errs chan<- error) (Logger, error) {
 }
 
 func (s *upstart) Run() (err error) {
-	err = s.i.Start(s)
-	if err != nil {
+	if err = s.i.Start(s); err != nil {
 		return err
 	}
 
@@ -228,44 +231,3 @@ func (s *upstart) Stop() error {
 func (s *upstart) Restart() error {
 	return run("initctl", "restart", s.Name)
 }
-
-// The upstart script should stop with an INT or the Go runtime will terminate
-// the program before the Stop handler can run.
-const upstartScript = `# {{.Description}}
-
-{{if .DisplayName}}description    "{{.DisplayName}}"{{end}}
-
-{{if .HasKillStanza}}kill signal INT{{end}}
-{{if .ChRoot}}chroot {{.ChRoot}}{{end}}
-{{if .WorkingDirectory}}chdir {{.WorkingDirectory}}{{end}}
-start on filesystem or runlevel [2345]
-stop on runlevel [!2345]
-
-{{if and .UserName .HasSetUIDStanza}}setuid {{.UserName}}{{end}}
-
-respawn
-respawn limit 10 5
-umask 022
-
-console none
-
-pre-start script
-    test -x {{.Path}} || { stop; exit 0; }
-end script
-
-# Start
-script
-	{{if .LogOutput}}
-	stdout_log="{{.LogDirectory}}/{{.Name}}.out"
-	stderr_log="{{.LogDirectory}}/{{.Name}}.err"
-	{{end}}
-	
-	if [ -f "/etc/sysconfig/{{.Name}}" ]; then
-		set -a
-		source /etc/sysconfig/{{.Name}}
-		set +a
-	fi
-
-	exec {{if and .UserName (not .HasSetUIDStanza)}}sudo -E -u {{.UserName}} {{end}}{{.Path}}{{range .Arguments}} {{.|cmd}}{{end}}{{if .LogOutput}} >> $stdout_log 2>> $stderr_log{{end}}
-end script
-`
