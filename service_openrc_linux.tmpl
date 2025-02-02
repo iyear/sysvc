@@ -1,0 +1,25 @@
+#!/sbin/openrc-run
+
+name="{{ .DisplayName }}"
+description="{{ .Description }}"
+command={{ .Path|cmdEscape }}
+{{- if .Arguments }}
+command_args="{{ range .Arguments }}{{.}} {{ end }}"
+{{- end }}
+{{- with .UserName }}
+command_user="{{ . }}"
+{{- end }}
+command_background=true
+pidfile="/var/run/{{ .Name }}.pid"
+
+{{- range $k, $v := .EnvVars }}
+export {{ $k }}={{ $v }}
+{{- end }}
+
+{{- with .Dependencies }}
+depend() {
+{{- range $i, $dep := . }}
+    {{$dep}}
+{{- end}}
+}
+{{- end }}

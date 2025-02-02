@@ -2,6 +2,7 @@ package sysvc
 
 import (
 	"bytes"
+	_ "embed"
 	"errors"
 	"fmt"
 	"os"
@@ -12,6 +13,12 @@ import (
 	"text/template"
 	"time"
 )
+
+// https://www.funtoo.org/Openrc
+// https://github.com/OpenRC/openrc/blob/master/service-script-guide.md
+//
+//go:embed service_openrc_linux.tmpl
+var openRCScript string
 
 func isOpenRC() bool {
 	if _, err := exec.LookPath("openrc-init"); err == nil {
@@ -112,12 +119,10 @@ func (s *openrc) Install() error {
 
 	var to = &struct {
 		*Config
-		Path         string
-		LogDirectory string
+		Path string
 	}{
 		s.Config,
 		path,
-		s.Option.string(optionLogDirectory, defaultLogDirectory),
 	}
 
 	err = s.template().Execute(f, to)
@@ -133,7 +138,7 @@ func (s *openrc) Uninstall() error {
 	if err != nil {
 		return err
 	}
-	if err := os.Remove(confPath); err != nil {
+	if err = os.Remove(confPath); err != nil {
 		return err
 	}
 	return s.runAction("delete")
@@ -218,30 +223,3 @@ func (s *openrc) runAction(action string) error {
 func (s *openrc) run(action string, args ...string) error {
 	return run("rc-update", append([]string{action}, args...)...)
 }
-
-// https://www.funtoo.org/Openrc
-// https://github.com/OpenRC/openrc/blob/master/service-script-guide.md
-const openRCScript = `#!/sbin/openrc-run
-name="{{.DisplayName}}"
-description="{{.Description}}"
-command={{.Path|cmdEscape}}
-{{- if .Arguments }}
-command_args="{{range .Arguments}}{{.}} {{end}}"
-{{- end }}
-{{- if .UserName }}
-command_user="{{.UserName}}"
-{{- end }}
-command_background=true
-pidfile="/var/run/{{.Name}}.pid"
-
-{{range $k, $v := .EnvVars -}}
-export {{$k}}={{$v}}
-{{end -}}
-
-{{- if .Dependencies }}
-depend() {
-{{- range $i, $dep := .Dependencies}}
-{{"\t"}}{{$dep}}{{end}}
-}
-{{- end}}
-`
