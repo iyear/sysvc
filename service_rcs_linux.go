@@ -76,7 +76,7 @@ func (s *rcs) Platform() string {
 // todo
 var errNoUserServiceRCS = errors.New("User services are not supported on rcS.")
 
-func (s *rcs) configPath() (cp string, err error) {
+func (s *rcs) ConfigPath() (cp string, err error) {
 	if s.Option.bool(optionUserService, optionUserServiceDefault) {
 		err = errNoUserServiceRCS
 		return
@@ -95,7 +95,7 @@ func (s *rcs) template() *template.Template {
 }
 
 func (s *rcs) Install() error {
-	confPath, err := s.configPath()
+	confPath, err := s.ConfigPath()
 	if err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func (s *rcs) Install() error {
 }
 
 func (s *rcs) Uninstall() error {
-	cp, err := s.configPath()
+	cp, err := s.ConfigPath()
 	if err != nil {
 		return err
 	}

@@ -101,7 +101,7 @@ func (s *darwinLaunchdService) getHomeDir() (string, error) {
 	return homeDir, nil
 }
 
-func (s *darwinLaunchdService) getServiceFilePath() (string, error) {
+func (s *darwinLaunchdService) ConfigPath() (string, error) {
 	if s.userService {
 		homeDir, err := s.getHomeDir()
 		if err != nil {
@@ -153,7 +153,7 @@ func (s *darwinLaunchdService) template() *template.Template {
 }
 
 func (s *darwinLaunchdService) Install() error {
-	confPath, err := s.getServiceFilePath()
+	confPath, err := s.ConfigPath()
 	if err != nil {
 		return err
 	}
@@ -206,7 +206,7 @@ func (s *darwinLaunchdService) Install() error {
 func (s *darwinLaunchdService) Uninstall() error {
 	s.Stop()
 
-	confPath, err := s.getServiceFilePath()
+	confPath, err := s.ConfigPath()
 	if err != nil {
 		return err
 	}
@@ -227,7 +227,7 @@ func (s *darwinLaunchdService) Status() (Status, error) {
 		return StatusRunning, nil
 	}
 
-	confPath, err := s.getServiceFilePath()
+	confPath, err := s.ConfigPath()
 	if err != nil {
 		return StatusUnknown, err
 	}
@@ -240,7 +240,7 @@ func (s *darwinLaunchdService) Status() (Status, error) {
 }
 
 func (s *darwinLaunchdService) Start() error {
-	confPath, err := s.getServiceFilePath()
+	confPath, err := s.ConfigPath()
 	if err != nil {
 		return err
 	}
@@ -248,7 +248,7 @@ func (s *darwinLaunchdService) Start() error {
 }
 
 func (s *darwinLaunchdService) Stop() error {
-	confPath, err := s.getServiceFilePath()
+	confPath, err := s.ConfigPath()
 	if err != nil {
 		return err
 	}

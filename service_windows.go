@@ -549,10 +549,15 @@ func (ws *windowsService) Logger(errs chan<- error) (Logger, error) {
 	}
 	return ws.SystemLogger(errs)
 }
+
 func (ws *windowsService) SystemLogger(errs chan<- error) (Logger, error) {
 	el, err := eventlog.Open(ws.Name)
 	if err != nil {
 		return nil, err
 	}
 	return WindowsLogger{el, errs}, nil
+}
+
+func (ws *windowsService) ConfigPath() (string, error) {
+	return "", ErrNoConfigPath
 }

@@ -153,6 +153,8 @@ var (
 	ErrNoServiceSystemDetected = errors.New("no service system detected")
 	// ErrNotInstalled is returned when the service is not installed.
 	ErrNotInstalled = errors.New("the service is not installed")
+	// ErrNoConfigPath is returned when the service does not have a configuration path.
+	ErrNoConfigPath = errors.New("the service does not have a configuration path")
 )
 
 // New creates a new service based on a service interface and configuration.
@@ -428,6 +430,10 @@ type Service interface {
 	// Platform displays the name of the system that manages the service.
 	// In most cases this will be the same as service.Platform().
 	Platform() string
+
+	// ConfigPath returns the path to the service configuration file.
+	// In some systems, it may return ErrNoConfigPath if the service does not have a configuration path.
+	ConfigPath() (string, error)
 
 	// Status returns the current service status.
 	Status() (Status, error)

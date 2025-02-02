@@ -75,7 +75,7 @@ func newOpenRCService(i Interface, platform string, c *Config) (Service, error) 
 
 var errNoUserServiceOpenRC = errors.New("user services are not supported on OpenRC")
 
-func (s *openrc) configPath() (cp string, err error) {
+func (s *openrc) ConfigPath() (cp string, err error) {
 	if s.Option.bool(optionUserService, optionUserServiceDefault) {
 		err = errNoUserServiceOpenRC
 		return
@@ -85,7 +85,7 @@ func (s *openrc) configPath() (cp string, err error) {
 }
 
 func (s *openrc) Install() error {
-	confPath, err := s.configPath()
+	confPath, err := s.ConfigPath()
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func (s *openrc) Install() error {
 }
 
 func (s *openrc) Uninstall() error {
-	confPath, err := s.configPath()
+	confPath, err := s.ConfigPath()
 	if err != nil {
 		return err
 	}
