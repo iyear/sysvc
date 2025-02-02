@@ -11,11 +11,11 @@ import (
 	"github.com/iyear/sysvc"
 )
 
-var logger service.Logger
+var logger sysvc.Logger
 
 type program struct{}
 
-func (p *program) Start(s service.Service) error {
+func (p *program) Start(s sysvc.Service) error {
 	// Start should not block. Do the actual work async.
 	go p.run()
 	return nil
@@ -23,20 +23,20 @@ func (p *program) Start(s service.Service) error {
 func (p *program) run() {
 	// Do work here
 }
-func (p *program) Stop(s service.Service) error {
+func (p *program) Stop(s sysvc.Service) error {
 	// Stop should not block. Return with a few seconds.
 	return nil
 }
 
 func main() {
-	svcConfig := &service.Config{
+	svcConfig := &sysvc.Config{
 		Name:        "GoServiceExampleSimple",
 		DisplayName: "Go Service Example",
 		Description: "This is an example Go service.",
 	}
 
 	prg := &program{}
-	s, err := service.New(prg, svcConfig)
+	s, err := sysvc.New(prg, svcConfig)
 	if err != nil {
 		log.Fatal(err)
 	}

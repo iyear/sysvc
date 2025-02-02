@@ -5,7 +5,7 @@
 //go:build darwin || dragonfly || freebsd || linux || nacl || netbsd || openbsd || solaris
 // +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
 
-package service_test
+package sysvc_test
 
 import (
 	"os"

@@ -6,7 +6,7 @@
 //go:build su
 // +build su
 
-package service_test
+package sysvc_test
 
 import (
 	"flag"
@@ -76,10 +76,10 @@ func TestInstallRunRestartStopRemove(t *testing.T) {
 
 func runService() {
 	p := &program{}
-	sc := &service.Config{
+	sc := &sysvc.Config{
 		Name: "go_service_test",
 	}
-	s, err := service.New(p, sc)
+	s, err := sysvc.New(p, sc)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -168,12 +168,12 @@ func mustNewRunAsService(
 	t *testing.T,
 	p *program,
 	reportDir string,
-) service.Service {
-	sc := &service.Config{
+) sysvc.Service {
+	sc := &sysvc.Config{
 		Name:      "go_service_test",
 		Arguments: []string{"-test.v=true", "-su.runAsService", "-su.reportDir", reportDir},
 	}
-	s, err := service.New(p, sc)
+	s, err := sysvc.New(p, sc)
 	if err != nil {
 		t.Fatal(err)
 	}
