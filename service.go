@@ -148,9 +148,9 @@ var (
 
 var (
 	// ErrNameFieldRequired is returned when Config.Name is empty.
-	ErrNameFieldRequired = errors.New("Config.Name field is required.")
+	ErrNameFieldRequired = errors.New("service name is required")
 	// ErrNoServiceSystemDetected is returned when no system was detected.
-	ErrNoServiceSystemDetected = errors.New("No service system detected.")
+	ErrNoServiceSystemDetected = errors.New("no service system detected")
 	// ErrNotInstalled is returned when the service is not installed.
 	ErrNotInstalled = errors.New("the service is not installed")
 )
@@ -411,7 +411,7 @@ type Service interface {
 	// greater rights. Will return an error if the service is not present.
 	Uninstall() error
 
-	// Opens and returns a system logger. If the user program is running
+	// Logger Opens and returns a system logger. If the user program is running
 	// interactively rather then as a service, the returned logger will write to
 	// os.Stderr. If errs is non-nil errors will be sent on errs as well as
 	// returned from Logger's functions.
@@ -451,10 +451,10 @@ func Control(s Service, action string) error {
 	case ControlAction[4]:
 		err = s.Uninstall()
 	default:
-		err = fmt.Errorf("Unknown action %s", action)
+		err = fmt.Errorf("unknown action %s", action)
 	}
 	if err != nil {
-		return fmt.Errorf("Failed to %s %v: %v", action, s, err)
+		return fmt.Errorf("failed to %s %v: %v", action, s, err)
 	}
 	return nil
 }
