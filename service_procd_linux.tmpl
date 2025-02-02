@@ -4,21 +4,21 @@ USE_PROCD=1
 START=21
 # Before network stops
 STOP=89
-cmd="{{.Path}}{{range .Arguments}} {{.|cmd}}{{end}}"
-name="{{.Name}}"
+cmd="{{ .Path }}{{ range .Arguments }} {{ . | cmd }}{{ end }}"
+name="{{ .Name }}"
 pid_file="/var/run/${name}.pid"
 
-{{- with .RespawnThreshold}}
-respawn_threshold={{.}}
-{{- end}}
+{{- with .RespawnThreshold }}
+respawn_threshold={{ . }}
+{{- end }}
 
-{{- with .RespawnTimeout}}
-respawn_timeout={{.}}
-{{- end}}
+{{- with .RespawnTimeout }}
+respawn_timeout={{ . }}
+{{- end }}
 
-{{- with .RespawnRetry}}
-respawn_retry={{.}}
-{{- end}}
+{{- with .RespawnRetry }}
+respawn_retry={{ . }}
+{{- end }}
 
 start_service() {
     echo "Starting ${name}"
@@ -29,14 +29,14 @@ start_service() {
     # if process finishes later than respawn_threshold, it is restarted unconditionally, regardless of error code
     # notice that this is literal respawning of the process, no in a respawn-on-failure sense
     procd_set_param respawn ${respawn_threshold:-300} ${respawn_timeout:-5} ${respawn_retry:-10}
-    {{- range $k, $v := .EnvVars}}
-    procd_set_param env {{$k}}={{$v}}
-    {{- end}}
+    {{- range $k, $v := .EnvVars }}
+    procd_set_param env {{ $k }}={{ $v }}
+    {{- end }}
     procd_set_param stdout 1             # forward stdout of the command to logd
     procd_set_param stderr 1             # same for stderr
-    {{- with .UserName}}
-    procd_set_param user {{.}}
-    {{- end}}
+    {{- with .UserName }}
+    procd_set_param user {{ . }}
+    {{- end }}
     procd_set_param pidfile ${pid_file}  # write a pid file on instance start and remove it on stop
     procd_close_instance
     echo "${name} has been started"
