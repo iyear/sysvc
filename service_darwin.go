@@ -5,6 +5,7 @@
 package sysvc
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"os"
@@ -18,17 +19,18 @@ import (
 	"time"
 )
 
-const maxPathSize = 32 * 1024
+//go:embed service_darwin.tmpl
+var launchdConfig string
 
 const (
-	version                   = "darwin-launchd"
+	platform                  = "darwin-launchd"
 	defaultDarwinLogDirectory = "/var/log"
 )
 
 type darwinSystem struct{}
 
 func (darwinSystem) String() string {
-	return version
+	return platform
 }
 
 func (darwinSystem) Detect() bool {
@@ -84,7 +86,7 @@ func (s *darwinLaunchdService) String() string {
 }
 
 func (s *darwinLaunchdService) Platform() string {
-	return version
+	return platform
 }
 
 func (s *darwinLaunchdService) getHomeDir() (string, error) {
@@ -204,7 +206,7 @@ func (s *darwinLaunchdService) Install() error {
 }
 
 func (s *darwinLaunchdService) Uninstall() error {
-	s.Stop()
+	_ = s.Stop() // stop the service if it is running
 
 	confPath, err := s.ConfigPath()
 	if err != nil {
@@ -289,59 +291,3 @@ func (s *darwinLaunchdService) Logger(errs chan<- error) (Logger, error) {
 func (s *darwinLaunchdService) SystemLogger(errs chan<- error) (Logger, error) {
 	return newSysLogger(s.Name, errs)
 }
-
-var launchdConfig = `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>Disabled</key>
-	<false/>
-	{{- if .EnvVars}}
-	<key>EnvironmentVariables</key>
-	<dict>
-		{{- range $k, $v := .EnvVars}}
-		<key>{{html $k}}</key>
-		<string>{{html $v}}</string>
-		{{- end}}
-	</dict>
-	{{- end}}
-	<key>KeepAlive</key>
-	<{{bool .KeepAlive}}/>
-	<key>Label</key>
-	<string>{{html .Name}}</string>
-	<key>ProgramArguments</key>
-	<array>
-		<string>{{html .Path}}</string>
-		{{- if .Config.Arguments}}
-		{{- range .Config.Arguments}}
-		<string>{{html .}}</string>
-		{{- end}}
-	{{- end}}
-	</array>
-	{{- if .ChRoot}}
-	<key>RootDirectory</key>
-	<string>{{html .ChRoot}}</string>
-	{{- end}}
-	<key>RunAtLoad</key>
-	<{{bool .RunAtLoad}}/>
-	<key>SessionCreate</key>
-	<{{bool .SessionCreate}}/>
-	{{- if .StandardErrorPath}}
-	<key>StandardErrorPath</key>
-	<string>{{html .StandardErrorPath}}</string>
-	{{- end}}
-	{{- if .StandardOutPath}}
-	<key>StandardOutPath</key>
-	<string>{{html .StandardOutPath}}</string>
-	{{- end}}
-	{{- if .UserName}}
-	<key>UserName</key>
-	<string>{{html .UserName}}</string>
-	{{- end}}
-	{{- if .WorkingDirectory}}
-	<key>WorkingDirectory</key>
-	<string>{{html .WorkingDirectory}}</string>
-	{{- end}}
-</dict>
-</plist>
-`
