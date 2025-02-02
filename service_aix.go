@@ -9,6 +9,7 @@ package sysvc
 
 import (
 	"bytes"
+	_ "embed"
 	"fmt"
 	"os"
 	"os/exec"
@@ -21,7 +22,8 @@ import (
 	"time"
 )
 
-const maxPathSize = 32 * 1024
+//go:embed service_aix.tmpl
+var aixScript string
 
 const version = "aix-ssrc"
 
@@ -30,12 +32,15 @@ type aixSystem struct{}
 func (aixSystem) String() string {
 	return version
 }
+
 func (aixSystem) Detect() bool {
 	return true
 }
+
 func (aixSystem) Interactive() bool {
 	return interactive
 }
+
 func (aixSystem) New(i Interface, c *Config) (Service, error) {
 	s := &aixService{
 		i:      i,
@@ -108,7 +113,7 @@ func (s *aixService) template() *template.Template {
 	if customConfig != "" {
 		return template.Must(template.New("").Funcs(functions).Parse(customConfig))
 	} else {
-		return template.Must(template.New("").Funcs(functions).Parse(svcConfig))
+		return template.Must(template.New("").Funcs(functions).Parse(aixScript))
 	}
 }
 
@@ -177,7 +182,7 @@ func (s *aixService) Install() error {
 }
 
 func (s *aixService) Uninstall() error {
-	s.Stop()
+	_ = s.Stop() // stop first with best effort
 
 	err := run("rmssys", "-s", s.Name)
 	if err != nil {
@@ -228,9 +233,11 @@ func (s *aixService) Status() (Status, error) {
 func (s *aixService) Start() error {
 	return run("startsrc", "-s", s.Name)
 }
+
 func (s *aixService) Stop() error {
 	return run("stopsrc", "-s", s.Name)
 }
+
 func (s *aixService) Restart() error {
 	err := s.Stop()
 	if err != nil {
@@ -263,20 +270,7 @@ func (s *aixService) Logger(errs chan<- error) (Logger, error) {
 	}
 	return s.SystemLogger(errs)
 }
+
 func (s *aixService) SystemLogger(errs chan<- error) (Logger, error) {
 	return newSysLogger(s.Name, errs)
 }
-
-var svcConfig = `#!/bin/ksh
-case "$1" in
-start )
-        startsrc -s {{.Name}}
-        ;;
-stop )
-        stopsrc -s {{.Name}}
-        ;;
-* )
-        echo "Usage: $0 (start | stop)"
-        exit 1
-esac
-`
