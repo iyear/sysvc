@@ -43,44 +43,47 @@ func init() {
 			return is
 		},
 		new: newSystemdService,
-	},
-		linuxSystemService{
-			name:   "linux-upstart",
-			detect: isUpstart,
-			interactive: func() bool {
-				is, _ := isInteractive()
-				return is
-			},
-			new: newUpstartService,
+	}, linuxSystemService{
+		name:   "linux-upstart",
+		detect: isUpstart,
+		interactive: func() bool {
+			is, _ := isInteractive()
+			return is
 		},
-		linuxSystemService{
-			name:   "linux-openrc",
-			detect: isOpenRC,
-			interactive: func() bool {
-				is, _ := isInteractive()
-				return is
-			},
-			new: newOpenRCService,
+		new: newUpstartService,
+	}, linuxSystemService{
+		name:   "linux-openrc",
+		detect: isOpenRC,
+		interactive: func() bool {
+			is, _ := isInteractive()
+			return is
 		},
-		linuxSystemService{
-			name:   "linux-rcs",
-			detect: isRCS,
-			interactive: func() bool {
-				is, _ := isInteractive()
-				return is
-			},
-			new: newRCSService,
+		new: newOpenRCService,
+	}, linuxSystemService{
+		name:   "linux-rcs",
+		detect: isRCS,
+		interactive: func() bool {
+			is, _ := isInteractive()
+			return is
 		},
-		linuxSystemService{
-			name:   "unix-systemv",
-			detect: func() bool { return true },
-			interactive: func() bool {
-				is, _ := isInteractive()
-				return is
-			},
-			new: newSystemVService,
+		new: newRCSService,
+	}, linuxSystemService{
+		name:   "linux-procd",
+		detect: isProcd,
+		interactive: func() bool {
+			is, _ := isInteractive()
+			return is
 		},
-	)
+		new: newProcdService,
+	}, linuxSystemService{
+		name:   "unix-systemv",
+		detect: func() bool { return true },
+		interactive: func() bool {
+			is, _ := isInteractive()
+			return is
+		},
+		new: newSystemVService,
+	})
 }
 
 func binaryName(pid int) (string, error) {
