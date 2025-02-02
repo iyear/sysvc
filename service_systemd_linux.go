@@ -6,6 +6,7 @@ package sysvc
 
 import (
 	"bytes"
+	_ "embed"
 	"errors"
 	"fmt"
 	"os"
@@ -18,6 +19,9 @@ import (
 	"syscall"
 	"text/template"
 )
+
+//go:embed service_systemd_linux.tmpl
+var systemdConfig string
 
 func isSystemd() bool {
 	if _, err := os.Stat("/run/systemd/system"); err == nil {
@@ -114,17 +118,11 @@ func (s *systemd) getSystemdVersion() int64 {
 }
 
 func (s *systemd) hasOutputFileSupport() bool {
-	defaultValue := true
-	version := s.getSystemdVersion()
-	if version == -1 {
-		return defaultValue
-	}
-
-	if version < 236 {
+	if version := s.getSystemdVersion(); version < 236 {
 		return false
 	}
 
-	return defaultValue
+	return true
 }
 
 func (s *systemd) template() *template.Template {
@@ -133,7 +131,7 @@ func (s *systemd) template() *template.Template {
 	if customScript != "" {
 		return template.Must(template.New("").Funcs(tf).Parse(customScript))
 	}
-	return template.Must(template.New("").Funcs(tf).Parse(systemdScript))
+	return template.Must(template.New("").Funcs(tf).Parse(systemdConfig))
 }
 
 func (s *systemd) isUserService() bool {
@@ -145,8 +143,7 @@ func (s *systemd) Install() error {
 	if err != nil {
 		return err
 	}
-	_, err = os.Stat(confPath)
-	if err == nil {
+	if _, err = os.Stat(confPath); err == nil {
 		return fmt.Errorf("Init already exists: %s", confPath)
 	}
 
@@ -201,15 +198,16 @@ func (s *systemd) Install() error {
 }
 
 func (s *systemd) Uninstall() error {
-	err := s.runAction("disable")
-	if err != nil {
+	if err := s.runAction("disable"); err != nil {
 		return err
 	}
+
 	cp, err := s.ConfigPath()
 	if err != nil {
 		return err
 	}
-	if err := os.Remove(cp); err != nil {
+
+	if err = os.Remove(cp); err != nil {
 		return err
 	}
 	return s.run("daemon-reload")
@@ -225,9 +223,8 @@ func (s *systemd) SystemLogger(errs chan<- error) (Logger, error) {
 	return newSysLogger(s.Name, errs)
 }
 
-func (s *systemd) Run() (err error) {
-	err = s.i.Start(s)
-	if err != nil {
+func (s *systemd) Run() error {
+	if err := s.i.Start(s); err != nil {
 		return err
 	}
 
@@ -251,7 +248,7 @@ func (s *systemd) Status() (Status, error) {
 		return StatusRunning, nil
 	case strings.HasPrefix(out, "inactive"):
 		// inactive can also mean its not installed, check unit files
-		exitCode, out, err := s.runWithOutput("systemctl", "list-unit-files", "-t", "service", s.unitName())
+		exitCode, out, err = s.runWithOutput("systemctl", "list-unit-files", "-t", "service", s.unitName())
 		if exitCode == 0 && err != nil {
 			return StatusUnknown, err
 		}
@@ -299,36 +296,3 @@ func (s *systemd) run(action string, args ...string) error {
 func (s *systemd) runAction(action string) error {
 	return s.run(action, s.unitName())
 }
-
-const systemdScript = `[Unit]
-Description={{.Description}}
-ConditionFileIsExecutable={{.Path|cmdEscape}}
-{{range $i, $dep := .Dependencies}} 
-{{$dep}} {{end}}
-
-[Service]
-StartLimitInterval=5
-StartLimitBurst=10
-ExecStart={{.Path|cmdEscape}}{{range .Arguments}} {{.|cmd}}{{end}}
-{{if .ChRoot}}RootDirectory={{.ChRoot|cmd}}{{end}}
-{{if .WorkingDirectory}}WorkingDirectory={{.WorkingDirectory|cmdEscape}}{{end}}
-{{if .UserName}}User={{.UserName}}{{end}}
-{{if .ReloadSignal}}ExecReload=/bin/kill -{{.ReloadSignal}} "$MAINPID"{{end}}
-{{if .PIDFile}}PIDFile={{.PIDFile|cmd}}{{end}}
-{{if and .LogOutput .HasOutputFileSupport -}}
-StandardOutput=file:{{.LogDirectory}}/{{.Name}}.out
-StandardError=file:{{.LogDirectory}}/{{.Name}}.err
-{{- end}}
-{{if gt .LimitNOFILE -1 }}LimitNOFILE={{.LimitNOFILE}}{{end}}
-{{if .Restart}}Restart={{.Restart}}{{end}}
-{{if .SuccessExitStatus}}SuccessExitStatus={{.SuccessExitStatus}}{{end}}
-RestartSec={{.RestartSec}}
-EnvironmentFile=-/etc/sysconfig/{{.Name}}
-
-{{range $k, $v := .EnvVars -}}
-Environment={{$k}}={{$v}}
-{{end -}}
-
-[Install]
-WantedBy=multi-user.target
-`

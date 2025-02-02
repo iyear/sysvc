@@ -1,0 +1,58 @@
+[Unit]
+Description={{ .Description }}
+ConditionFileIsExecutable={{ .Path | cmdEscape }}
+{{- range $i, $dep := .Dependencies}}
+{{$dep}}
+{{- end}}
+
+[Service]
+StartLimitInterval=5
+StartLimitBurst=10
+ExecStart={{ .Path | cmdEscape }}{{ range .Arguments }} {{ . | cmd }}{{ end }}
+
+{{- with .ChRoot }}
+RootDirectory={{ . | cmd }}
+{{- end }}
+
+{{- with .WorkingDirectory }}
+WorkingDirectory={{ . | cmdEscape }}
+{{- end }}
+
+{{- with .UserName }}
+User={{ . }}
+{{- end }}
+
+{{- with .ReloadSignal }}
+ExecReload=/bin/kill -{{ . }} "$MAINPID"
+{{- end }}
+
+{{- with .PIDFile }}
+PIDFile={{ . | cmd }}
+{{- end }}
+
+{{- if and .LogOutput .HasOutputFileSupport -}}
+StandardOutput=file:{{ .LogDirectory }}/{{ .Name }}.out
+StandardError=file:{{ .LogDirectory }}/{{ .Name }}.err
+{{- end }}
+
+{{- if gt .LimitNOFILE -1 }}
+LimitNOFILE={{ .LimitNOFILE }}
+{{- end }}
+
+{{- with .Restart }}
+Restart={{ . }}
+{{- end }}
+
+{{- with .SuccessExitStatus }}
+SuccessExitStatus={{ . }}
+{{- end }}
+
+RestartSec={{ .RestartSec }}
+EnvironmentFile=-/etc/sysconfig/{{ .Name }}
+
+{{- range $k, $v := .EnvVars }}
+Environment={{ $k }}={{ $v }}
+{{- end }}
+
+[Install]
+WantedBy=multi-user.target
