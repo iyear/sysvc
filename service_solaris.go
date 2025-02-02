@@ -6,6 +6,7 @@ package sysvc
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/xml"
 	"fmt"
 	"os"
@@ -16,21 +17,19 @@ import (
 	"time"
 )
 
-const maxPathSize = 32 * 1024
+//go:embed service_solaris.tmpl
+var solarisManifest string
 
-const version = "solaris-smf"
+const platform = "solaris-smf"
 
 type solarisSystem struct{}
 
-func (solarisSystem) String() string {
-	return version
-}
-func (solarisSystem) Detect() bool {
-	return true
-}
-func (solarisSystem) Interactive() bool {
-	return interactive
-}
+func (solarisSystem) String() string { return platform }
+
+func (solarisSystem) Detect() bool { return true }
+
+func (solarisSystem) Interactive() bool { return interactive }
+
 func (solarisSystem) New(i Interface, c *Config) (Service, error) {
 	s := &solarisService{
 		i:      i,
@@ -76,7 +75,7 @@ func (s *solarisService) String() string {
 }
 
 func (s *solarisService) Platform() string {
-	return version
+	return platform
 }
 
 func (s *solarisService) template() *template.Template {
@@ -94,7 +93,7 @@ func (s *solarisService) template() *template.Template {
 	if customConfig != "" {
 		return template.Must(template.New("").Funcs(functions).Parse(customConfig))
 	} else {
-		return template.Must(template.New("").Funcs(functions).Parse(manifest))
+		return template.Must(template.New("").Funcs(functions).Parse(solarisManifest))
 	}
 }
 
@@ -159,14 +158,13 @@ func (s *solarisService) Install() error {
 }
 
 func (s *solarisService) Uninstall() error {
-	s.Stop()
+	_ = s.Stop() // stop the service if it is running
 
 	confPath, err := s.ConfigPath()
 	if err != nil {
 		return err
 	}
-	err = os.Remove(confPath)
-	if err != nil {
+	if err = os.Remove(confPath); err != nil {
 		return err
 	}
 
@@ -206,11 +204,12 @@ func (s *solarisService) Stop() error {
 	return run("/usr/sbin/svcadm", "disable", s.getFMRI())
 }
 func (s *solarisService) Restart() error {
-	err := s.Stop()
-	if err != nil {
+	if err := s.Stop(); err != nil {
 		return err
 	}
+
 	time.Sleep(50 * time.Millisecond)
+
 	return s.Start()
 }
 
@@ -240,69 +239,3 @@ func (s *solarisService) Logger(errs chan<- error) (Logger, error) {
 func (s *solarisService) SystemLogger(errs chan<- error) (Logger, error) {
 	return newSysLogger(s.Name, errs)
 }
-
-var manifest = `<?xml version="1.0"?>
-<!DOCTYPE service_bundle SYSTEM "/usr/share/lib/xml/dtd/service_bundle.dtd.1">
-
-<service_bundle type='manifest' name='golang-{{.Name}}'>
-<service
-	name='{{.Prefix}}/{{.Name}}'
-	type='service'
-	version='1'>
-	
-	<create_default_instance enabled='false' />
-
-	<single_instance />
-
-	<!--
-	  Wait for network interfaces to be initialized.
-	-->
-	<dependency name='network'
-	    grouping='require_all'
-	    restart_on='restart'
-	    type='service'>
-	    <service_fmri value='svc:/milestone/network:default'/>
-	</dependency>
-
-	<!--
-	  Wait for all local filesystems to be mounted.
-	-->
-	<dependency name='filesystem-local'
-	    grouping='require_all'
-	    restart_on='none'
-	    type='service'>
-	    <service_fmri
-		value='svc:/system/filesystem/local:default'/>
-	</dependency>
-
-	<exec_method
-		type='method'
-		name='start'
-		exec='bash -c {{.Path}} &amp;'
-		timeout_seconds='10' />
-
-	<exec_method
-		type='method'
-		name='stop'
-		exec='pkill -TERM -f {{.Path}}'
-		timeout_seconds='60' />
-
-	<!--
-	<property_group name='startd' type='framework'>
-                <propval name='duration' type='astring' value='transient' />
-        </property_group>
-	-->
-	
-	<stability value='Unstable' />
-
-	<template>
-                <common_name>
-                        <loctext xml:lang='C'>
-                                {{.Display}}
-                        </loctext>
-                </common_name>
-        </template>
-</service>
-
-</service_bundle>
-`

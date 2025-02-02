@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<!DOCTYPE service_bundle SYSTEM "/usr/share/lib/xml/dtd/service_bundle.dtd.1">
+
+<service_bundle type='manifest' name='golang-{{ .Name }}'>
+	<service
+			name='{{ .Prefix }}/{{ .Name }}'
+			type='service'
+			version='1'>
+
+		<create_default_instance enabled='false' />
+
+		<single_instance />
+
+		<!--
+          Wait for network interfaces to be initialized.
+        -->
+		<dependency name='network'
+					grouping='require_all'
+					restart_on='restart'
+					type='service'>
+			<service_fmri value='svc:/milestone/network:default'/>
+		</dependency>
+
+		<!--
+          Wait for all local filesystems to be mounted.
+        -->
+		<dependency name='filesystem-local'
+					grouping='require_all'
+					restart_on='none'
+					type='service'>
+			<service_fmri
+					value='svc:/system/filesystem/local:default'/>
+		</dependency>
+
+		<exec_method
+				type='method'
+				name='start'
+				exec='bash -c {{ .Path }} &amp;'
+				timeout_seconds='10' />
+
+		<exec_method
+				type='method'
+				name='stop'
+				exec='pkill -TERM -f {{ .Path }}'
+				timeout_seconds='60' />
+
+		<!--
+        <property_group name='startd' type='framework'>
+                    <propval name='duration' type='astring' value='transient' />
+            </property_group>
+        -->
+
+		<stability value='Unstable' />
+
+		<template>
+			<common_name>
+				<loctext xml:lang='C'>
+					{{ .Display }}
+				</loctext>
+			</common_name>
+		</template>
+	</service>
+
+</service_bundle>
