@@ -2,10 +2,10 @@
 
 case "$1" in
 start )
-    startsrc -s {{.Name}}
+    startsrc -s {{ .Name }}
     ;;
 stop )
-    stopsrc -s {{.Name}}
+    stopsrc -s {{ .Name }}
     ;;
 * )
     echo "Usage: $0 (start | stop)"
