@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	version = "windows-service"
+	platform = "windows-service"
 
 	StartType             = "StartType"
 	ServiceStartManual    = "manual"
@@ -55,15 +55,12 @@ type WindowsLogger struct {
 
 type windowsSystem struct{}
 
-func (windowsSystem) String() string {
-	return version
-}
-func (windowsSystem) Detect() bool {
-	return true
-}
-func (windowsSystem) Interactive() bool {
-	return interactive
-}
+func (windowsSystem) String() string { return platform }
+
+func (windowsSystem) Detect() bool { return true }
+
+func (windowsSystem) Interactive() bool { return interactive }
+
 func (windowsSystem) New(i Interface, c *Config) (Service, error) {
 	ws := &windowsService{
 		i:      i,
@@ -164,7 +161,7 @@ func (ws *windowsService) String() string {
 }
 
 func (ws *windowsService) Platform() string {
-	return version
+	return platform
 }
 
 func (ws *windowsService) setError(err error) {
@@ -256,12 +253,13 @@ func (ws *windowsService) setEnvironmentVariablesInRegistry() error {
 		envStrings = append(envStrings, k+"="+v)
 	}
 
-	if err := k.SetStringsValue("Environment", envStrings); err != nil {
+	if err = k.SetStringsValue("Environment", envStrings); err != nil {
 		return fmt.Errorf("failed setting env var registry key, err = %v", err)
 	}
-	if err := k.Close(); err != nil {
+	if err = k.Close(); err != nil {
 		return fmt.Errorf("failed closing env var registry key, err = %v", err)
 	}
+
 	return nil
 }
 
@@ -277,7 +275,7 @@ func (ws *windowsService) Install() error {
 	}
 	defer m.Disconnect()
 
-	if err := ws.setEnvironmentVariablesInRegistry(); err != nil {
+	if err = ws.setEnvironmentVariablesInRegistry(); err != nil {
 		return err
 	}
 
