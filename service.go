@@ -86,6 +86,8 @@ const (
 	optionLimitNOFILE        = "LimitNOFILE"
 	optionLimitNOFILEDefault = -1 // -1 = don't set in configuration
 	optionRestart            = "Restart"
+	optionRestartSec         = "RestartSec"
+	optionRestartSecDefault  = 120
 
 	optionSuccessExitStatus = "SuccessExitStatus"
 
@@ -205,6 +207,8 @@ func New(i Interface, c *Config) (Service, error) {
 //   - LogOutput     bool   (false)            - Redirect StdErr & StandardOutPath to files.
 //
 //   - Restart       string (always)           - How shall service be restarted.
+//
+//   - RestartSec    int    (120)              - Delay seconds before restarting the service.
 //
 //   - SuccessExitStatus string ()             - The list of exit status that shall be considered as successful,
 //     in addition to the default ones.
