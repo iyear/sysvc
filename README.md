@@ -1,4 +1,28 @@
-# service [![GoDoc](https://godoc.org/github.com/iyear/sysvc?status.svg)](https://godoc.org/github.com/iyear/sysvc)
+## Fork update
+[![GoDoc](https://godoc.org/github.com/iyear/sysvc?status.svg)](https://godoc.org/github.com/iyear/sysvc)
+
+This is a fork of the [kardianos/service](https://github.com/kardianos/service/). The original repository is no longer maintained actively. This fork is intended to fix bugs, refactor the code and merge upstream pull requests.
+
+### Install
+
+```bash
+go get -u github.com/iyear/sysvc
+```
+
+### Changes
+- [x] Move all scripts/configs to `.tmpl` files.
+- [x] Add `ConfigPath()` function to `Service` interface to get the path of the configuration file. (On `Windows` it returns `ErrNoConfigPath` error)
+- [x] Upgrade `golang.org/x/sys` to latest version.
+- [ ] Support for listing all services on the system. 
+- [ ] Write and run unit tests on GitHub Actions.
+- [x] **[OpenRC]** Support for running as specific user.
+- [x] **[Systemd]** Support custom `RestartSec` value. [Upstream#324](https://github.com/kardianos/service/pull/324)
+- [x] **[Procd]** Support `Procd` init system used in OpenWRT. [Upstream#366](https://github.com/kardianos/service/pull/366)
+- [x] **[Windows]** Reduce permission requirement to query service status.
+[Upstream#402](https://github.com/kardianos/service/pull/402)
+----
+
+## service
 
 service will install / un-install, start / stop, and run a program as a service (daemon).
 Currently supports Windows XP+, Linux/(systemd | Upstart | SysV), and OSX/Launchd.
